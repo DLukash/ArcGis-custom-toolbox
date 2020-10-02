@@ -6,7 +6,7 @@
 
   1. Feature class to Feature Service/layer.
    
-    It makes append to a Feature service in a Portal faster with help of ArcGis API for Python.
+    It makes append to a Feature service in a Portal faster with help of ArcGis API for Python and threading.
 
 
 
