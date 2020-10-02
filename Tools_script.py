@@ -19,7 +19,7 @@ from datetime import datetime
 class FeatureClassToFeatureLayerSyncClass(object):
     def __init__(self):
         """Define the tool (tool name is the name of the class)."""
-        self.label = "Feature class to Feature Service/layer "
+        self.label = "Feature class to Feature Service/layer"
         self.description = ""
         self.canRunInBackground = False
 
