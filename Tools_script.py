@@ -6,15 +6,12 @@ import time
 import json
 from threading import Thread 
 
-global current_params
-global out_fields_desc #descriptio of out fields
-global in_fields_desc #descriptio of in fields
-global layer_desc #description of in layer 
+current_params
+out_fields_desc #descriptio of out fields
+in_fields_desc #descriptio of in fields
+layer_desc #description of in layer 
 current_params = [None, None, None]
-
 portal_items = None
-
-from datetime import datetime
 
 class FeatureClassToFeatureLayerSyncClass(object):
     def __init__(self):
@@ -108,8 +105,6 @@ class FeatureClassToFeatureLayerSyncClass(object):
             # Get the layer and it's properties
             layer = FeatureLayer(parameters[0].valueAsText)
             properties = layer.properties
-            item_type = properties.geometryType
-
 
             # Apply filter of feature type to input parameter
             # Form a pairs os types for filter applying
@@ -126,7 +121,6 @@ class FeatureClassToFeatureLayerSyncClass(object):
             parameters[1].filter.list = filter_type
 
             #Lists to populate fields to a matching table
-            values = []
             system_fields = []
             
             # System fields with info about changes + Global and Object ID. Populates automaticaly
