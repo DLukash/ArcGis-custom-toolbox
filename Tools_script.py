@@ -6,12 +6,12 @@ import time
 import json
 from threading import Thread 
 
-current_params
-out_fields_desc #descriptio of out fields
-in_fields_desc #descriptio of in fields
-layer_desc #description of in layer 
-current_params = [None, None, None]
-portal_items = None
+
+# out_fields_desc #descriptio of out fields
+# in_fields_desc #descriptio of in fields
+# layer_desc #description of in layer 
+# current_params = [None, None, None]
+# portal_items = None
 
 class FeatureClassToFeatureLayerSyncClass(object):
     def __init__(self):
@@ -20,7 +20,10 @@ class FeatureClassToFeatureLayerSyncClass(object):
         self.description = ""
         self.canRunInBackground = False
 
-
+    out_fields_desc = None #descriptio of out fields
+    in_fields_desc = None #descriptio of in fields
+    layer_desc = None #description of in layer 
+    current_params = [None, None, None] #Place to save current values of parameters
 
     def getParameterInfo(self):
         """Define parameter definitions"""
@@ -84,23 +87,15 @@ class FeatureClassToFeatureLayerSyncClass(object):
         validation is performed.  This method is called whenever a parameter
         has been changed."""
 
-        #When we choose or change feature layer/table we change appiriance of the table.
-        global current_params
-        global out_fields_desc
-        global in_fields_desc
-        global layer_desc
-        global portal_items
-
-
         if not (parameters[0].altered and parameters[0].altered and parameters[0].altered): # Refresh params if tool is reopened but not reloaded
-            current_params = [None, None, None]
+            FeatureClassToFeatureLayerSyncClass.current_params = [None, None, None]
 
-        if parameters[0].altered and current_params[0] != parameters[0].valueAsText:  
+        if parameters[0].altered and FeatureClassToFeatureLayerSyncClass.current_params[0] != parameters[0].valueAsText:  
 
             # Authentification on active portal using Python API (arcpy lib)
             token = arcpy.GetSigninToken()
             portal_url = arcpy.GetActivePortalURL()
-            gis = GIS(portal_url, token = token['token'])
+            GIS(portal_url, token = token['token'])
 
             # Get the layer and it's properties
             layer = FeatureLayer(parameters[0].valueAsText)
@@ -128,8 +123,11 @@ class FeatureClassToFeatureLayerSyncClass(object):
                 system_fields.extend([x[1] for x in properties.editFieldsInfo.items()])
             except AttributeError:
                 pass
-            
-            system_fields.append(properties.objectIdField)
+
+            try:
+                system_fields.append(properties.objectIdField)
+            except AttributeError:
+                pass
 
             try:
                 system_fields.append(properties.globalIdField)
@@ -143,7 +141,7 @@ class FeatureClassToFeatureLayerSyncClass(object):
             parameters[2].filters[0].list = [x.name for x in layer.properties.fields if not x.name in system_fields]
 
             #Add input fields to self for feaurute actions
-            out_fields_desc = layer.properties
+            FeatureClassToFeatureLayerSyncClass.out_fields_desc = layer.properties
             
           
             #Show matching table ONLY if input and output params is set
@@ -152,11 +150,11 @@ class FeatureClassToFeatureLayerSyncClass(object):
             else:
                 parameters[2].enabled = False
 
-            current_params[0] = parameters[0].valueAsText
+            FeatureClassToFeatureLayerSyncClass.current_params[0] = parameters[0].valueAsText
 
 
 
-        if parameters[1].altered and current_params[1] != parameters[1].valueAsText:
+        if parameters[1].altered and FeatureClassToFeatureLayerSyncClass.current_params[1] != parameters[1].valueAsText:
 
             description = arcpy.Describe(parameters[1].valueAsText)
             field_count = description.fieldInfo.count
@@ -173,20 +171,18 @@ class FeatureClassToFeatureLayerSyncClass(object):
                 parameters[2].enabled = True
             else:
                 parameters[2].enabled = False
-
-            current_params[1] = parameters[1].valueAsText
+                
+            # Save parameter value to choose state
+            FeatureClassToFeatureLayerSyncClass.current_params[1] = parameters[1].valueAsText
 
             # Save description for feaurute action
-            in_fields_desc = arcpy.ListFields(parameters[1].valueAsText)
-            layer_desc = description
+            FeatureClassToFeatureLayerSyncClass.in_fields_desc = arcpy.ListFields(parameters[1].valueAsText)
+            FeatureClassToFeatureLayerSyncClass.layer_desc = description
 
+        if parameters[2].altered and FeatureClassToFeatureLayerSyncClass.current_params[2] != parameters[2].valueAsText:
 
-        if parameters[2].altered and current_params[2] != parameters[2].valueAsText:
-
-            current_params[2] = parameters[2].valueAsText
+            FeatureClassToFeatureLayerSyncClass.current_params[2] = parameters[2].valueAsText
             
-
-        
         return
 
     def updateMessages(self, parameters):
@@ -194,9 +190,10 @@ class FeatureClassToFeatureLayerSyncClass(object):
         parameter.  This method is called after internal validation."""
 
 
-        global out_fields_desc
-        global in_fields_desc
-        global layer_desc
+        out_fields_desc = FeatureClassToFeatureLayerSyncClass.out_fields_desc
+        in_fields_desc = FeatureClassToFeatureLayerSyncClass.in_fields_desc
+        layer_desc = FeatureClassToFeatureLayerSyncClass.layer_desc
+
 
         if parameters[1].altered and parameters[0].altered:
             
@@ -248,10 +245,14 @@ class FeatureClassToFeatureLayerSyncClass(object):
                 system_fields.extend([x[1] for x in out_fields_desc.editFieldsInfo.items()])
             except AttributeError:
                 pass
-            
-            system_fields.append(out_fields_desc.objectIdField)
 
             try:
+                system_fields.append(out_fields_desc.objectIdField)
+            except AttributeError:
+                pass
+
+            try:
+
                 system_fields.append(out_fields_desc.globalIdField)
             except AttributeError:
                 pass
@@ -314,13 +315,9 @@ class FeatureClassToFeatureLayerSyncClass(object):
 
         for thread in threads:
             thread.join()
-
-
-            #!TODO Переробити перевірку проекції     
-
+  
         return
 
-#!TODO check for editable and nullable fields
 
 def create_and_append(feature_list = None, token = None, portal_url = None, service_url = None, matching = None):
 
@@ -371,7 +368,6 @@ def chunkIt(seq, num):  #Func to split list by a parts
 
 
 def get_feature_service_list(): #functions to get Feature layer list from portal  
-        global portal_items    
 
         # Authentification on active portal using Python API (arcpy lib)
         token = arcpy.GetSigninToken()
@@ -381,10 +377,7 @@ def get_feature_service_list(): #functions to get Feature layer list from portal
         # Get content of the Portal and get url's of layers and tables
 
         #content = gis.content
-        search_results = gis.content.search(query = '', item_type='Feature Service', max_items = 200)
-        
-        portal_items = search_results
-
+        search_results = gis.content.search(query = '', item_type='Feature Service', max_items = 200)        
         layers_list = []
 
         #Only layers not tables
